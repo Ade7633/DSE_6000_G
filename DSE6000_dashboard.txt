@@ -1,0 +1,116 @@
+#Install the Required Libraries
+#!pip install pandas matplotlib jupyter-dash plotly
+!pip install pandas matplotlib dash plotly
+
+
+#Import Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+from dash import Dash
+from dash import dcc
+from dash import html
+from dash.dependencies import Input, Output
+import plotly.express as px
+
+#Load Data
+# Load data
+df= pd.read_csv('C:/Users/Owner/OneDrive - Wayne State University/Desktop/1. Wayne State University (June23)/WSU Classes/DSE 6000 Computing/Group_project/us_chronic_disease_indicators.csv')
+
+# Initialize the Dash App
+app = Dash(__name__)
+
+
+
+
+
+# Time series chart depicting the incidence of cancer over the years
+cancer_df = df[df['topic'] == 'Cancer']
+cancer_count_by_year = cancer_df.groupby('yearstart').size()
+
+# Distribution of cancer by Ethnicity using bar chart
+cancer_race_df = df[(df['topic'] == 'Cancer') & (df['stratificationcategory1'] == 'Race/Ethnicity')]
+cancer_by_race = cancer_race_df.groupby('stratification1').size()
+
+# Distribution of cancer by Gender using bar chart
+cancer_gender_df = df[(df['topic'] == 'Cancer') & (df['stratificationcategory1'] == 'Gender')]
+cancer_by_gender = cancer_gender_df.groupby('stratification1').size()
+
+# Initialize Dash app
+app = Dash(__name__)
+
+# Define layout
+app.layout = html.Div([
+    dcc.Dropdown(
+        id='visualization-dropdown',
+        options=[
+            {'label': 'Time Series Chart', 'value': 'time-series'},
+            {'label': 'Distribution by Ethnicity (Bar Chart)', 'value': 'bar-chart-ethnicity'},
+            {'label': 'Distribution by Gender (Bar Chart)', 'value': 'bar-chart-gender'},
+        ],
+        value='time-series',
+        style={'width': '50%'}
+    ),
+    
+    html.Div(id='visualization-content')
+])
+
+# Callback to update the content based on the selected visualization
+@app.callback(
+    Output('visualization-content', 'children'),
+    [Input('visualization-dropdown', 'value')]
+)
+def update_content(selected_value):
+    if selected_value == 'time-series':
+        return [
+            dcc.Graph(
+                id='time-series-chart',
+                figure={
+                    'data': [
+                        {'x': cancer_count_by_year.index, 'y': cancer_count_by_year.values, 'type': 'line', 'marker': 'o'},
+                    ],
+                    'layout': {
+                        'title': 'Incidence of Cancer Over the Years',
+                        'xaxis': {'title': 'Year'},
+                        'yaxis': {'title': 'Number of Cases'},
+                    }
+                }
+            )
+        ]
+    elif selected_value == 'bar-chart-ethnicity':
+        return [
+            dcc.Graph(
+                id='bar-chart-ethnicity',
+                figure={
+                    'data': [
+                        {'x': cancer_by_race.index, 'y': cancer_by_race.values, 'type': 'bar', 'marker': {'color': 'skyblue'}},
+                    ],
+                    'layout': {
+                        'title': 'Distribution of Cancer Among Different Race/Ethnicity Categories',
+                        'xaxis': {'title': 'Race/Ethnicity'},
+                        'yaxis': {'title': 'Number of Cases'},
+                    }
+                }
+            )
+        ]
+    elif selected_value == 'bar-chart-gender':
+        return [
+            dcc.Graph(
+                id='bar-chart-gender',
+                figure={
+                    'data': [
+                        {'x': cancer_by_gender.index, 'y': cancer_by_gender.values, 'type': 'bar', 'marker': {'color': 'skyblue'}},
+                    ],
+                    'layout': {
+                        'title': 'Distribution of Cancer Among Different Gender Categories',
+                        'xaxis': {'title': 'Gender'},
+                        'yaxis': {'title': 'Number of Cases'},
+                    }
+                }
+            )
+        ]
+    else:
+        return []
+
+# Run the app
+app.run_server(mode="inline")
+
